@@ -12,7 +12,7 @@ import torch.backends.cudnn as cudnn
 from triplet_mnist_loader import MNIST_t
 from triplet_image_loader import TripletImageLoader
 from tripletnet import Tripletnet
-from visdom import Visdom
+# from visdom import Visdom
 import numpy as np
 
 # Training settings
@@ -51,7 +51,7 @@ def main():
     if args.cuda:
         torch.cuda.manual_seed(args.seed)
     global plotter 
-    plotter = VisdomLinePlotter(env_name=args.name)
+    # plotter = VisdomLinePlotter(env_name=args.name)
 
     kwargs = {'num_workers': 1, 'pin_memory': True} if args.cuda else {}
     train_loader = torch.utils.data.DataLoader(
@@ -152,9 +152,9 @@ def train(train_loader, tnet, criterion, optimizer, epoch):
 
         # measure accuracy and record loss
         acc = accuracy(dista, distb)
-        losses.update(loss_triplet.data[0], data1.size(0))
+        losses.update(loss_triplet.item(), data1.size(0))
         accs.update(acc, data1.size(0))
-        emb_norms.update(loss_embedd.data[0]/3, data1.size(0))
+        emb_norms.update(loss_embedd.item()/3, data1.size(0))
 
         # compute gradient and do optimizer step
         optimizer.zero_grad()
@@ -170,9 +170,9 @@ def train(train_loader, tnet, criterion, optimizer, epoch):
                 losses.val, losses.avg, 
                 100. * accs.val, 100. * accs.avg, emb_norms.val, emb_norms.avg))
     # log avg values to somewhere
-    plotter.plot('acc', 'train', epoch, accs.avg)
-    plotter.plot('loss', 'train', epoch, losses.avg)
-    plotter.plot('emb_norms', 'train', epoch, emb_norms.avg)
+    # plotter.plot('acc', 'train', epoch, accs.avg)
+    # plotter.plot('loss', 'train', epoch, losses.avg)
+    # plotter.plot('emb_norms', 'train', epoch, emb_norms.avg)
 
 def test(test_loader, tnet, criterion, epoch):
     losses = AverageMeter()
@@ -191,7 +191,7 @@ def test(test_loader, tnet, criterion, epoch):
         if args.cuda:
             target = target.cuda()
         target = Variable(target)
-        test_loss =  criterion(dista, distb, target).data[0]
+        test_loss = criterion(dista, distb, target).item()
 
         # measure accuracy and record loss
         acc = accuracy(dista, distb)
@@ -200,8 +200,8 @@ def test(test_loader, tnet, criterion, epoch):
 
     print('\nTest set: Average loss: {:.4f}, Accuracy: {:.2f}%\n'.format(
         losses.avg, 100. * accs.avg))
-    plotter.plot('acc', 'test', epoch, accs.avg)
-    plotter.plot('loss', 'test', epoch, losses.avg)
+    # plotter.plot('acc', 'test', epoch, accs.avg)
+    # plotter.plot('loss', 'test', epoch, losses.avg)
     return accs.avg
 
 def save_checkpoint(state, is_best, filename='checkpoint.pth.tar'):
@@ -214,22 +214,22 @@ def save_checkpoint(state, is_best, filename='checkpoint.pth.tar'):
     if is_best:
         shutil.copyfile(filename, 'runs/%s/'%(args.name) + 'model_best.pth.tar')
 
-class VisdomLinePlotter(object):
-    """Plots to Visdom"""
-    def __init__(self, env_name='main'):
-        self.viz = Visdom()
-        self.env = env_name
-        self.plots = {}
-    def plot(self, var_name, split_name, x, y):
-        if var_name not in self.plots:
-            self.plots[var_name] = self.viz.line(X=np.array([x,x]), Y=np.array([y,y]), env=self.env, opts=dict(
-                legend=[split_name],
-                title=var_name,
-                xlabel='Epochs',
-                ylabel=var_name
-            ))
-        else:
-            self.viz.updateTrace(X=np.array([x]), Y=np.array([y]), env=self.env, win=self.plots[var_name], name=split_name)
+# class VisdomLinePlotter(object):
+#     """Plots to Visdom"""
+#     def __init__(self, env_name='main'):
+#         self.viz = Visdom()
+#         self.env = env_name
+#         self.plots = {}
+#     def plot(self, var_name, split_name, x, y):
+#         if var_name not in self.plots:
+#             self.plots[var_name] = self.viz.line(X=np.array([x,x]), Y=np.array([y,y]), env=self.env, opts=dict(
+#                 legend=[split_name],
+#                 title=var_name,
+#                 xlabel='Epochs',
+#                 ylabel=var_name
+#             ))
+#         else:
+#             self.viz.updateTrace(X=np.array([x]), Y=np.array([y]), env=self.env, win=self.plots[var_name], name=split_name)
 
 class AverageMeter(object):
     """Computes and stores the average and current value"""
@@ -250,8 +250,8 @@ class AverageMeter(object):
 
 def accuracy(dista, distb):
     margin = 0
-    pred = (dista - distb - margin).cpu().data
-    return (pred > 0).sum()*1.0/dista.size()[0]
+    pred = (dista - distb - margin)
+    return (pred > 0).sum().float()/dista.size()[0]
 
 if __name__ == '__main__':
     main()    

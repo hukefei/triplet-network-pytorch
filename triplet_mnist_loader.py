@@ -44,6 +44,8 @@ class MNIST_t(data.Dataset):
             self.make_triplet_list(n_train_triplets)
             triplets = []
             for line in open(os.path.join(root, self.processed_folder, self.train_triplet_file)):
+                if line == '\n':
+                    continue
                 triplets.append((int(line.split()[0]), int(line.split()[1]), int(line.split()[2]))) # anchor, close, far
             self.triplets_train = triplets
         else:
@@ -51,6 +53,8 @@ class MNIST_t(data.Dataset):
             self.make_triplet_list(n_test_triplets)
             triplets = []
             for line in open(os.path.join(root, self.processed_folder, self.test_triplet_file)):
+                if line == '\n':
+                    continue
                 triplets.append((int(line.split()[0]), int(line.split()[1]), int(line.split()[2]))) # anchor, close, far
             self.triplets_test = triplets
 
@@ -109,15 +113,16 @@ class MNIST_t(data.Dataset):
 
         for url in self.urls:
             print('Downloading ' + url)
-            data = urllib.request.urlopen(url)
             filename = url.rpartition('/')[2]
             file_path = os.path.join(self.root, self.raw_folder, filename)
-            with open(file_path, 'wb') as f:
-                f.write(data.read())
+            if not os.path.exists(file_path):
+                data = urllib.request.urlopen(url)
+                with open(file_path, 'wb') as f:
+                    f.write(data.read())
             with open(file_path.replace('.gz', ''), 'wb') as out_f, \
                     gzip.GzipFile(file_path) as zip_f:
                 out_f.write(zip_f.read())
-            os.unlink(file_path)
+            # os.unlink(file_path)
 
         # process and save as torch files
         print('Processing...')
